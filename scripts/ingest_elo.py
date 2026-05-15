@@ -1,0 +1,109 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from database import SessionLocal
+from database import Game, TeamEloRating
+
+HOME_ADVANTAGE = 100
+
+def initialize_elos():
+    teams = [
+        "ATL", "BOS", "BKN", "CHA",
+        "CHI", "CLE", "DAL", "DEN",
+        "DET", "GSW", "HOU", "IND",
+        "LAC", "LAL", "MEM", "MIA",
+        "MIL", "MIN", "NOP", "NYK",
+        "OKC", "ORL", "PHI", "PHX",
+        "POR", "SAC", "SAS", "TOR",
+        "UTA", "WAS"
+    ]
+
+    elo_ratings = {
+        team: 1500 for team in teams
+    }
+
+    return elo_ratings
+
+def expected_score(rating_a, rating_b):
+    return 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+
+def update_elo(
+    rating,
+    expected,
+    actual,
+    k=20
+):
+    return rating + k * (actual - expected)
+
+def ingest_elos(season: str):
+    session = SessionLocal()
+    games = (
+        session.query(Game)
+        .where(Game.season==season)
+        .order_by(Game.game_date.asc())
+        .all()
+    )
+
+    elo_ratings = initialize_elos()
+
+    for game in games:
+        home = game.home_team
+        away = game.away_team
+
+        home_rating = elo_ratings[home]
+        away_rating = elo_ratings[away]
+
+        expected_home = expected_score(
+            home_rating + HOME_ADVANTAGE,
+            away_rating
+        )
+
+        expected_away = expected_score(
+            away_rating,
+            home_rating
+        )
+
+        home_won = (
+            game.home_score > game.away_score
+        )
+
+        actual_home = 1 if home_won else 0
+        actual_away = 0 if home_won else 1
+
+        new_home = update_elo(
+            home_rating,
+            expected_home,
+            actual_home
+        )
+
+        new_away = update_elo(
+            away_rating,
+            expected_away,
+            actual_away
+        )
+
+        elo_ratings[home] = new_home
+        elo_ratings[away] = new_away
+
+        home_entry = TeamEloRating(
+            season=game.season,
+            team=home,
+            rating_date=game.game_date,
+            elo_rating=new_home
+        )
+
+        away_entry = TeamEloRating(
+            season=game.season,
+            team=away,
+            rating_date=game.game_date,
+            elo_rating=new_away
+        )
+
+        session.add(home_entry)
+        session.add(away_entry)
+
+    session.commit()
