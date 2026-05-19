@@ -7,7 +7,6 @@ if str(ROOT_DIR) not in sys.path:
 
 from database import engine
 from database import Base
-from database import Game, PlayByPlayEvent, FeatureSnapshot, TeamEloRating
 
 Base.metadata.create_all(bind=engine)
 

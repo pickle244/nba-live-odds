@@ -1,21 +1,27 @@
-from nba_api.stats.endpoints import playbyplayv2
+from nba_api.stats.endpoints import playbyplayv3
 import pandas as pd
 
 def find_game_pbp(game_id: str) -> pd.DataFrame:
-    pbp = playbyplayv2.PlayByPlayV2(
-        game_id=game_id
-    )
+    try:
+        pbp = playbyplayv3.PlayByPlayV3(
+            game_id=game_id
+        )
 
-    pbp_df = pbp.get_data_frames()[0]
+        pbp_df = pbp.get_data_frames()[0]
 
-    return pbp_df
+        return pbp_df
+
+    except Exception as e:
+        print(f"Failed for {game_id}")
+        print(e)
+
+import re
 
 def clock_to_seconds(clock):
+    match = re.match(r"PT(\d+)M([\d.]+)S", clock)
 
-    minutes, seconds = map(
-        int,
-        clock.split(":")
-    )
+    minutes = int(match.group(1))
+    seconds = float(match.group(2))
 
     return minutes * 60 + seconds
 
@@ -32,31 +38,40 @@ from database import PlayByPlayEvent
 def ingest_game_pbp(game_id: str):
     pbp_df = find_game_pbp(game_id)
 
-    scores = pbp_df["SCORE"].str.split(" - ", expand=True)
-
-    pbp_df["home_score"] = pd.to_numeric(scores[0])
-    pbp_df["away_score"] = pd.to_numeric(scores[1])
-
     session = SessionLocal()
 
     for _, row in pbp_df.iterrows():
+        home_score = row['scoreHome']
+        away_score = row['scoreAway']
         event = PlayByPlayEvent(
-            game_id=row["GAME_ID"],
-            event_num=row["EVENTNUM"],
-            period=row["PERIOD"],
-            clock=row["PCTIMESTRING"],
+            game_id=game_id,
+            period=row["period"],
+            clock=row["clock"],
             seconds_remaining=clock_to_seconds(
-                row["PCTIMESTRING"]
+                row["clock"]
             ),
-            home_score=row['home_score'],
-            away_score=row['away_score'],
+            home_score=0 if home_score == '' else int(home_score),
+            away_score=0 if away_score == '' else int(away_score),
             description=(
-                row["HOMEDESCRIPTION"]
-                or row["VISITORDESCRIPTION"]
-                or ""
+                row["description"]
             )
         )
 
-        session.add(event)
+        session.merge(event)
 
     session.commit()
+    print(f'Events for game {game_id} ingested')
+
+from database import Game
+
+session = SessionLocal()
+games = (
+    session.query(Game)
+    .all()
+)
+
+import time
+if __name__ == "__main__":
+    for game in games:
+        ingest_game_pbp(game.id)
+        time.sleep(1.0)

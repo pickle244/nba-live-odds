@@ -78,7 +78,3 @@ def get_results():
     )
 
     return home_win_probs, aucroc
-
-home_win_probs, aucroc = get_results()
-
-print(f'Test AUCROC: {aucroc}')
