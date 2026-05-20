@@ -75,7 +75,7 @@ def extract_features(date, games):
 
 def poll_predict():
     artifact = joblib.load(
-        "backend/models/live_odds.pkl"
+        "models/live_odds.pkl"
     )
 
     live_odds = artifact["model"]
