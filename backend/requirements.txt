@@ -7,3 +7,4 @@ joblib
 nba_api
 sqlalchemy
 psycopg2-binary
+dotenv
