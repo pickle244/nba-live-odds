@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 import joblib
 
-from app.db.database import engine
+from backend.app.db.database import engine
 
 def get_df():
     query = """

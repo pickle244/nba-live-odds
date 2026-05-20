@@ -7,7 +7,7 @@ from requests.exceptions import ReadTimeout, ConnectionError
 from nba_api.stats.endpoints import playbyplayv3
 from nba_api.stats.library.http import NBAStatsHTTP
 
-from app.db.database import SessionLocal, PlayByPlayEvent, Game
+from backend.app.db.database import SessionLocal, PlayByPlayEvent, Game
 
 NBAStatsHTTP.timeout = 60
 
