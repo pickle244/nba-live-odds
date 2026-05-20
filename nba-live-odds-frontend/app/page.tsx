@@ -32,23 +32,23 @@ export default function Home() {
 
       <h1>NBA Live Odds</h1>
 
-      {Object.entries(data).map(([gameId, game]: any) => (
+      {Object.keys(data || {}).length === 0 ? (
+        <p>No live games</p>
+      ) : (
+        Object.entries(data).map(([gameId, game]: any) => (
+          <div key={gameId} style={{ marginBottom: 20 }}>
+            <h3>{game.home_team} vs {game.away_team}</h3>
 
-        <div key={gameId} style={{ marginBottom: 20 }}>
+            <p>
+              Win Probability: {game.home_win_probability}
+            </p>
 
-          <h3>{game.home_team} vs {game.away_team}</h3>
-
-          <p>
-            Win Probability: {game.home_win_probability}
-          </p>
-
-          <p>
-            Score Diff: {game.score_diff}
-          </p>
-
-        </div>
-
-      ))}
+            <p>
+              Score Diff: {game.score_diff}
+            </p>
+          </div>
+        ))
+      )}
 
     </main>
   );
