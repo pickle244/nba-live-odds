@@ -3,6 +3,7 @@ import pandas as pd
 
 def find_season_games(season: str) -> pd.DataFrame:
     games = leaguegamefinder.LeagueGameFinder(
+        season_type_nullable=['Regular Season','Playoffs'],
         season_nullable=season
     )
 
@@ -60,12 +61,13 @@ def ingest_season_games(season: str):
         session.close()
 
 seasons = [
-    '2020-21', 
-    '2021-22',
-    '2022-23',
-    '2023-24',
-    '2024-25'
-    ]
+    # '2020-21', 
+    # '2021-22',
+    # '2022-23',
+    # '2023-24',
+    '2024-25',
+    '2025-26'
+]
 
 if __name__ == "__main__":
     for season in seasons:

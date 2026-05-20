@@ -61,8 +61,6 @@ class PlayByPlayEvent(Base):
         ForeignKey("games.id")
     )
 
-    event_num = Column(Integer)
-
     period = Column(Integer)
 
     clock = Column(String)
@@ -91,13 +89,8 @@ class FeatureSnapshot(Base):
         index=True
     )
 
-    event_num = Column(
-        Integer,
-        nullable=False
-    )
-
     season = Column(
-        Integer,
+        String,
         nullable=False,
         index=True
     )
@@ -167,7 +160,7 @@ class TeamEloRating(Base):
     )
 
     season = Column(
-        Integer,
+        String,
         nullable=False,
         index=True
     )

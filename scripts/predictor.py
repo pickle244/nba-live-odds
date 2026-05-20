@@ -8,12 +8,6 @@ if str(ROOT_DIR) not in sys.path:
 from database import engine
 import pandas as pd
 
-FEATURES = [
-    "score_diff",
-    "seconds_remaining",
-    "elo_diff",
-]
-
 def get_df():
     query = """
     SELECT *
@@ -22,25 +16,19 @@ def get_df():
 
     df = pd.read_sql(query, engine)
 
-    df["home_win"] = (
-        df["eventual_winner"]
-        == df["home_team"]
-    ).astype(int)
+    df["home_win"] = (df["home_score"] > df["away_score"]).astype(int)
 
     return df
 
 from sklearn.model_selection import train_test_split
 
-TEST_SIZE = 0.2
-RANDOM_STATE = 42
-
-def split_df(df):
+def split_df(df, test_size, random_seed):
     game_ids = df["game_id"].unique()
 
     train_games, test_games = train_test_split(
         game_ids,
-        test_size=TEST_SIZE,
-        random_state=RANDOM_STATE
+        test_size=test_size,
+        random_state=random_seed
     )
 
     train_df = df[
@@ -51,30 +39,59 @@ def split_df(df):
         df["game_id"].isin(test_games)
     ]
 
-    X_train = train_df[FEATURES]
-    y_train = train_df["home_win"]
-
-    X_test = test_df[FEATURES]
-    y_test = test_df["home_win"]
-
-    return X_train, y_train, X_test, y_test
+    return train_df, test_df
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
+import joblib
+import numpy as np
 
-def get_results():
+TEST_SIZE = 0.2
+RANDOM_SEED = 42
+FEATURES = [
+    "score_diff",
+    "seconds_remaining",
+    "elo_diff",
+]
+
+if __name__ == "__main__":
     df = get_df()
-    X_train, y_train, X_test, y_test = split_df(df)
+    print(f'Shape of dataset: {df.shape}')
+    
+    train_df, test_df = split_df(df, TEST_SIZE, RANDOM_SEED)
 
-    model = LogisticRegression()
+    X_train = train_df[FEATURES]
+    print(f'Shape of training set: {X_train.shape}')
+    y_train = train_df["home_win"]
 
-    model.fit(X_train, y_train)
+    X_test = test_df[FEATURES]
+    print(f'Shape of test set: {X_test.shape}')
+    y_test = test_df["home_win"]
 
-    home_win_probs = model.predict_proba(X_test)[:, 1]
+    live_odds = LogisticRegression()
+
+    live_odds.fit(X_train, y_train)
+
+    artifact = {
+        "model": live_odds,
+        "features": FEATURES
+    }
+
+    joblib.dump(
+        artifact,
+        "models/live_odds.pkl"
+    )
+
+    home_win_probs = live_odds.predict_proba(X_test)[:, 1]
+    
+    probs_sorted = np.sort(home_win_probs)
+
+    print(f'Five highest probabilities: {probs_sorted[-5:]}')
+    print(f'Five lowest probabilities: {probs_sorted[:5]}')
 
     aucroc = roc_auc_score(
         y_test,
         home_win_probs
     )
 
-    return home_win_probs, aucroc
+    print(f'Test set AUCROC: {aucroc}')

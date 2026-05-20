@@ -7,23 +7,16 @@ if str(ROOT_DIR) not in sys.path:
 
 from database import SessionLocal
 from database import Game, TeamEloRating
+from nba_api.stats.static import teams
 
 HOME_ADVANTAGE = 100
 
 def initialize_elos():
-    teams = [
-        "ATL", "BOS", "BKN", "CHA",
-        "CHI", "CLE", "DAL", "DEN",
-        "DET", "GSW", "HOU", "IND",
-        "LAC", "LAL", "MEM", "MIA",
-        "MIL", "MIN", "NOP", "NYK",
-        "OKC", "ORL", "PHI", "PHX",
-        "POR", "SAC", "SAS", "TOR",
-        "UTA", "WAS"
-    ]
+    team_list = teams._get_teams()
+    team_abbrevs = [team['abbreviation'] for team in team_list]
 
     elo_ratings = {
-        team: 1500 for team in teams
+        team: 1500 for team in team_abbrevs
     }
 
     return elo_ratings
@@ -54,56 +47,71 @@ def ingest_elos(season: str):
         home = game.home_team
         away = game.away_team
 
-        home_rating = elo_ratings[home]
-        away_rating = elo_ratings[away]
+        home_rating = elo_ratings[home] if home in elo_ratings else None
+        away_rating = elo_ratings[away] if away in elo_ratings else None
 
-        expected_home = expected_score(
-            home_rating + HOME_ADVANTAGE,
-            away_rating
-        )
+        if home_rating is not None and away_rating is not None:
+            expected_home = expected_score(
+                home_rating + HOME_ADVANTAGE,
+                away_rating
+            )
 
-        expected_away = expected_score(
-            away_rating,
-            home_rating
-        )
+            expected_away = expected_score(
+                away_rating,
+                home_rating
+            )
 
-        home_won = (
-            game.home_score > game.away_score
-        )
+            home_won = (
+                game.home_score > game.away_score
+            )
 
-        actual_home = 1 if home_won else 0
-        actual_away = 0 if home_won else 1
+            actual_home = 1 if home_won else 0
+            actual_away = 0 if home_won else 1
 
-        new_home = update_elo(
-            home_rating,
-            expected_home,
-            actual_home
-        )
+            new_home = update_elo(
+                home_rating,
+                expected_home,
+                actual_home
+            )
 
-        new_away = update_elo(
-            away_rating,
-            expected_away,
-            actual_away
-        )
+            new_away = update_elo(
+                away_rating,
+                expected_away,
+                actual_away
+            )
 
-        elo_ratings[home] = new_home
-        elo_ratings[away] = new_away
+            elo_ratings[home] = new_home
+            elo_ratings[away] = new_away
 
-        home_entry = TeamEloRating(
-            season=game.season,
-            team=home,
-            rating_date=game.game_date,
-            elo_rating=new_home
-        )
+            home_entry = TeamEloRating(
+                season=game.season,
+                team=home,
+                rating_date=game.game_date,
+                elo_rating=new_home
+            )
 
-        away_entry = TeamEloRating(
-            season=game.season,
-            team=away,
-            rating_date=game.game_date,
-            elo_rating=new_away
-        )
+            away_entry = TeamEloRating(
+                season=game.season,
+                team=away,
+                rating_date=game.game_date,
+                elo_rating=new_away
+            )
 
-        session.add(home_entry)
-        session.add(away_entry)
+            session.add(home_entry)
+            session.add(away_entry)
 
     session.commit()
+    print(f'ELOs for {season} season ingested')
+
+if __name__ == "__main__":
+    seasons = [
+        # '2020-21', 
+        # '2021-22',
+        # '2022-23',
+        # '2023-24',
+        '2024-25',
+        '2025-26'
+    ]
+
+    for season in seasons:
+        ingest_elos(season)
