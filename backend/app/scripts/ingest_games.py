@@ -4,7 +4,7 @@ import pandas as pd
 
 from nba_api.stats.endpoints import leaguegamefinder
 
-from backend.app.db.database import SessionLocal, Game
+from app.db.database import SessionLocal, Game
 
 def find_season_games(season: str) -> pd.DataFrame:
     games = leaguegamefinder.LeagueGameFinder(

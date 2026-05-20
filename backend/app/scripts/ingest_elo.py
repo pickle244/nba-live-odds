@@ -1,6 +1,6 @@
 from nba_api.stats.static import teams
 
-from backend.app.db.database import SessionLocal, Game, TeamEloRating
+from app.db.database import SessionLocal, Game, TeamEloRating
 
 HOME_ADVANTAGE = 100
 

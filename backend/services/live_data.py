@@ -6,8 +6,8 @@ import joblib
 
 from nba_api.live.nba.endpoints import scoreboard
 
-from backend.app.db.database import SessionLocal, TeamEloRating
-from backend.app.scripts.ingest_pbp import clock_to_seconds
+from app.db.database import SessionLocal, TeamEloRating
+from app.scripts.ingest_pbp import clock_to_seconds
 
 live_predictions = dict()
 prediction_lock = Lock()

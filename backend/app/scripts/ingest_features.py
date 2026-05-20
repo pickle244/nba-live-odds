@@ -1,4 +1,4 @@
-from backend.app.db.database import SessionLocal, Game, PlayByPlayEvent, FeatureSnapshot, TeamEloRating
+from app.db.database import SessionLocal, Game, PlayByPlayEvent, FeatureSnapshot, TeamEloRating
 
 def get_games():
     session = SessionLocal()
