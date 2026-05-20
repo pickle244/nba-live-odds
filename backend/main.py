@@ -3,8 +3,7 @@ import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.services.live_data import poll_predict
-from backend.services.live_data import live_predictions
+from services.live_data import poll_predict, live_predictions
 
 app = FastAPI()
 
