@@ -14,7 +14,7 @@ app.add_middleware(
 
     allow_origins=[
         "http://localhost:3000",
-        "https://your-vercel-app.vercel.app"
+        "https://nba-live-odds-rho.vercel.app/"
     ],
 
     allow_credentials=True,
