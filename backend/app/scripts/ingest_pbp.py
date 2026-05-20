@@ -1,8 +1,13 @@
-from nba_api.stats.endpoints import playbyplayv3
+import time
+
 import pandas as pd
-from requests.exceptions import ReadTimeout
-from requests.exceptions import ConnectionError
+
+from requests.exceptions import ReadTimeout, ConnectionError
+
+from nba_api.stats.endpoints import playbyplayv3
 from nba_api.stats.library.http import NBAStatsHTTP
+
+from app.db.database import SessionLocal, PlayByPlayEvent, Game
 
 NBAStatsHTTP.timeout = 60
 
@@ -34,15 +39,12 @@ def clock_to_seconds(clock):
 
     return minutes * 60 + seconds
 
-import sys
-from pathlib import Path
+# import sys
+# from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from database import SessionLocal
-from database import PlayByPlayEvent
+# ROOT_DIR = Path(__file__).resolve().parent.parent
+# if str(ROOT_DIR) not in sys.path:
+#     sys.path.insert(0, str(ROOT_DIR))
 
 def ingest_game_pbp(game_id: str):
     pbp_df = find_game_pbp(game_id)
@@ -82,9 +84,6 @@ def ingest_game_pbp(game_id: str):
         
     session.commit()
 
-from database import Game
-
-import time
 if __name__ == "__main__":
     session = SessionLocal()
     games = (

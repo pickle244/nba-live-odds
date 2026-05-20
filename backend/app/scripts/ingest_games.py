@@ -1,5 +1,10 @@
-from nba_api.stats.endpoints import leaguegamefinder
+import re
+
 import pandas as pd
+
+from nba_api.stats.endpoints import leaguegamefinder
+
+from app.db.database import SessionLocal, Game
 
 def find_season_games(season: str) -> pd.DataFrame:
     games = leaguegamefinder.LeagueGameFinder(
@@ -10,17 +15,6 @@ def find_season_games(season: str) -> pd.DataFrame:
     games_df = games.get_data_frames()[0]
 
     return games_df
-
-import sys
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from database import SessionLocal
-from database import Game
-import re
 
 def ingest_season_games(season: str):
     games_df = find_season_games(season)
@@ -60,15 +54,15 @@ def ingest_season_games(season: str):
     finally:
         session.close()
 
-seasons = [
-    # '2020-21', 
-    # '2021-22',
-    # '2022-23',
-    # '2023-24',
-    '2024-25',
-    '2025-26'
-]
-
 if __name__ == "__main__":
+    seasons = [
+        # '2020-21', 
+        # '2021-22',
+        # '2022-23',
+        # '2023-24',
+        '2024-25',
+        '2025-26'
+    ]
+
     for season in seasons:
         ingest_season_games(season)

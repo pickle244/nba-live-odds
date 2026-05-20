@@ -1,12 +1,11 @@
-import sys
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from database import engine
 import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+import joblib
+
+from app.db.database import engine
 
 def get_df():
     query = """
@@ -19,8 +18,6 @@ def get_df():
     df["home_win"] = (df["home_score"] > df["away_score"]).astype(int)
 
     return df
-
-from sklearn.model_selection import train_test_split
 
 def split_df(df, test_size, random_seed):
     game_ids = df["game_id"].unique()
@@ -40,11 +37,6 @@ def split_df(df, test_size, random_seed):
     ]
 
     return train_df, test_df
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-import joblib
-import numpy as np
 
 TEST_SIZE = 0.2
 RANDOM_SEED = 42

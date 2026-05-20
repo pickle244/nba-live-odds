@@ -1,4 +1,16 @@
+import time
+from threading import Lock
+
+import pandas as pd
+import joblib
+
 from nba_api.live.nba.endpoints import scoreboard
+
+from app.db.database import SessionLocal, TeamEloRating
+from app.scripts.ingest_pbp import clock_to_seconds
+
+live_predictions = dict()
+prediction_lock = Lock()
 
 def get_current_games():
     try:
@@ -11,16 +23,6 @@ def get_current_games():
         print(f"NBA API error: {e}")
         time.sleep(5)
         return None, []
-
-import sys
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
-
-from database import SessionLocal
-from database import TeamEloRating
 
 def latest_elo(team, date):
     session = SessionLocal()
@@ -38,8 +40,6 @@ def latest_elo(team, date):
     )
 
     return latest_elo
-
-from scripts.ingest_pbp import clock_to_seconds
 
 def extract_features(date, games):
     features_list = []
@@ -72,19 +72,6 @@ def extract_features(date, games):
         )
     
     return features_list
-
-import time
-import threading
-import joblib
-import pandas as pd
-from fastapi import FastAPI
-
-app = FastAPI()
-
-live_predictions = dict()
-from threading import Lock
-
-prediction_lock = Lock()
 
 def poll_predict():
     artifact = joblib.load(
@@ -126,14 +113,3 @@ def poll_predict():
         print(live_predictions)
 
         time.sleep(10)
-
-@app.on_event("startup")
-def startup_event():
-    threading.Thread(
-        target=poll_predict,
-        daemon=True
-    ).start()
-
-@app.get("/live_predictions")
-def get_live_predictions():
-    return live_predictions
