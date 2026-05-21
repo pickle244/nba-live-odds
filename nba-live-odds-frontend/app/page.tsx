@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from 'next/link';
+import ProbabilityChart from "./components/ProbabilityChart";
 
 export default function Home() {
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
 
   const [data, setData] = useState<any>({});
 
   async function fetchOdds() {
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/live_predictions`
+      `${API_URL}/live_predictions`
     );
 
     const json = await res.json();
@@ -36,17 +40,34 @@ export default function Home() {
         <p>No live games</p>
       ) : (
         Object.entries(data).map(([gameId, game]: any) => (
-          <div key={gameId} style={{ marginBottom: 20 }}>
-            <h3>{game.home_team} vs {game.away_team}</h3>
+          <Link
+            href={`/game/${gameId}`}
+            key={gameId}
+          >
+            <div key={gameId} style={{ marginBottom: 20, cursor: "pointer" }}>
+              <h3>{game.home_team} vs {game.away_team}</h3>
 
-            <p>
-              Win Probability: {game.home_win_probability}
-            </p>
+              <ProbabilityChart
+                history={game}
+              />
 
-            <p>
-              Score Diff: {game.score_diff}
-            </p>
-          </div>
+              <p>
+                Home Team Win Probability: {game.probability}
+              </p>
+
+              <p>
+                Score Diff: {game.score_diff}
+              </p>
+
+              <p>
+                Seconds Remaining: {game.seconds_remaining}
+              </p>
+
+              <p>
+                Last Updated: {game.last_updated}
+              </p>
+            </div>
+          </Link>
         ))
       )}
 

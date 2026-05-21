@@ -73,6 +73,8 @@ def extract_features(date, games):
     
     return features_list
 
+MAX_HISTORY = 500
+
 def poll_predict():
     artifact = joblib.load(
         "models/live_odds.pkl"
@@ -101,14 +103,20 @@ def poll_predict():
 
         for features, proba in zip(features_list, pred_probas):
             pred_entry = dict()
-            pred_entry['home_team'] = features_list[1]
-            pred_entry['away_team'] = features_list[2]
-            pred_entry['score_diff'] = features_list[3]
-            pred_entry['seconds_remaining'] = features_list[4]
+            pred_entry['home_team'] = features[1]
+            pred_entry['away_team'] = features[2]
+            pred_entry['score_diff'] = features[3]
+            pred_entry['seconds_remaining'] = features[4]
             pred_entry['last_updated'] = time.now()
+            pred_entry['probability'] = proba
 
             with prediction_lock:
-                live_predictions[features_list[0]].append(pred_entry)
+                game_id = features[0]
+                history = live_predictions[game_id]
+                if len(history) > MAX_HISTORY:
+                    history.pop(0)
+
+                live_predictions[game_id].append(pred_entry)
         
         print(live_predictions)
 
