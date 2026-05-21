@@ -14,6 +14,8 @@ async def lifespan(app: FastAPI):
         daemon=True
     ).start()
 
+    yield
+
 app = FastAPI(lifespan=lifespan)
 
 # CORS
