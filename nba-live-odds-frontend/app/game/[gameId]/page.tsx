@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ProbabilityChart from "./../../components/ProbabilityChart";
+import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
 
 type Game = {
   home_team: string;
   away_team: string;
-  home_win_probability: number;
+  probability: number;
   score_diff: number;
   seconds_remaining: number;
+  last_updated: Timestamp;
 };
 
 export default function GamePage({
@@ -37,18 +40,26 @@ export default function GamePage({
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>
-        {game.home_team}
-        vs
-        {game.away_team}
-      </h1>
+      <h1>{game.home_team} vs {game.away_team}</h1>
+      
+      <ProbabilityChart
+        history={game}
+      />
+
       <p>
-        Win Probability:
-        {game.home_win_probability}
+        Home Team Win Probability: {game.probability}
       </p>
+
       <p>
-        Score Diff:
-        {game.score_diff}
+        Score Diff: {game.score_diff}
+      </p>
+
+      <p>
+        Seconds Remaining: {game.seconds_remaining}
+      </p>
+
+      <p>
+        Last Updated: {game.last_updated}
       </p>
     </main>
   );

@@ -2,18 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from 'next/link';
-import ProbabilityChart from "./components/ProbabilityChart";
 
 export default function Home() {
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL
-
   const [data, setData] = useState<any>({});
 
   async function fetchOdds() {
 
     const res = await fetch(
-      `${API_URL}/live_predictions`
+      `${process.env.NEXT_PUBLIC_API_URL}/live_predictions`
     );
 
     const json = await res.json();
@@ -47,10 +43,6 @@ export default function Home() {
             <div key={gameId} style={{ marginBottom: 20, cursor: "pointer" }}>
               <h3>{game.home_team} vs {game.away_team}</h3>
 
-              <ProbabilityChart
-                history={game}
-              />
-
               <p>
                 Home Team Win Probability: {game.probability}
               </p>
@@ -61,10 +53,6 @@ export default function Home() {
 
               <p>
                 Seconds Remaining: {game.seconds_remaining}
-              </p>
-
-              <p>
-                Last Updated: {game.last_updated}
               </p>
             </div>
           </Link>
