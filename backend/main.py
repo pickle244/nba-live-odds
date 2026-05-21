@@ -9,12 +9,16 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    threading.Thread(
+    poll_thread = threading.Thread(
         target=poll_predict,
         daemon=True
-    ).start()
+    )
+
+    poll_thread.start()
 
     yield
+
+    print("Shutting down...")
 
 app = FastAPI(lifespan=lifespan)
 
