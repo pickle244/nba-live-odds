@@ -35,28 +35,36 @@ export default function Home() {
       {Object.keys(data || {}).length === 0 ? (
         <p>No live games</p>
       ) : (
-        Object.entries(data).map(([gameId, game]: any) => (
-          <Link
-            href={`/game/${gameId}`}
-            key={gameId}
-          >
-            <div key={gameId} style={{ marginBottom: 20, cursor: "pointer" }}>
-              <h3>{game[-1].home_team} vs {game[-1].away_team}</h3>
+        Object.entries(data).map(([gameId, game]: any) => {
 
-              <p>
-                Home Team Win Probability: {game[-1].probability}
-              </p>
+          const last = game[game.length - 1];
 
-              <p>
-                Score Diff: {game[-1].score_diff}
-              </p>
+          if (!last) return null;
 
-              <p>
-                Seconds Remaining: {game[-1].seconds_remaining}
-              </p>
-            </div>
-          </Link>
-        ))
+          return (
+            <Link href={`/game/${gameId}`} key={gameId}>
+              <div style={{ marginBottom: 20, cursor: "pointer" }}>
+
+                <h3>
+                  {last.home_team} vs {last.away_team}
+                </h3>
+
+                <p>
+                  Home Team Win Probability: {last.probability}
+                </p>
+
+                <p>
+                  Score Diff: {last.score_diff}
+                </p>
+
+                <p>
+                  Seconds Remaining: {last.seconds_remaining}
+                </p>
+
+              </div>
+            </Link>
+          );
+        })
       )}
 
     </main>

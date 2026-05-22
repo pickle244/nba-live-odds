@@ -38,28 +38,29 @@ export default function GamePage({
     return <p>Loading...</p>;
   }
 
+  const last = game[game.length - 1];
   return (
     <main style={{ padding: 20 }}>
-      <h1>{game[-1].home_team} vs {game[-1].away_team}</h1>
+      <h1>{last.home_team} vs {last.away_team}</h1>
       
       <ProbabilityChart
         history={game}
       />
 
       <p>
-        Home Team Win Probability: {game[-1].probability}
+        Home Team Win Probability: {last.probability}
       </p>
 
       <p>
-        Score Diff: {game[-1].score_diff}
+        Score Diff: {last.score_diff}
       </p>
 
       <p>
-        Seconds Remaining: {game[-1].seconds_remaining}
+        Seconds Remaining: {last.seconds_remaining}
       </p>
 
       <p>
-        Last Updated: {game[-1].last_updated}
+        Last Updated: {last.last_updated}
       </p>
     </main>
   );
