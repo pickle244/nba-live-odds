@@ -41,18 +41,18 @@ export default function Home() {
             key={gameId}
           >
             <div key={gameId} style={{ marginBottom: 20, cursor: "pointer" }}>
-              <h3>{game.home_team} vs {game.away_team}</h3>
+              <h3>{game[-1].home_team} vs {game[-1].away_team}</h3>
 
               <p>
-                Home Team Win Probability: {game.probability}
+                Home Team Win Probability: {game[-1].probability}
               </p>
 
               <p>
-                Score Diff: {game.score_diff}
+                Score Diff: {game[-1].score_diff}
               </p>
 
               <p>
-                Seconds Remaining: {game.seconds_remaining}
+                Seconds Remaining: {game[-1].seconds_remaining}
               </p>
             </div>
           </Link>

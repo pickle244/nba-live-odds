@@ -17,7 +17,7 @@ export default function GamePage({
   params
 }: any) {
   const { gameId } = params;
-  const [game, setGame] = useState<Game | null>(null);
+  const [game, setGame] = useState<Game[] | null>(null);
 
   useEffect(() => {
     async function fetchGame() {
@@ -40,26 +40,26 @@ export default function GamePage({
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>{game.home_team} vs {game.away_team}</h1>
+      <h1>{game[-1].home_team} vs {game[-1].away_team}</h1>
       
       <ProbabilityChart
         history={game}
       />
 
       <p>
-        Home Team Win Probability: {game.probability}
+        Home Team Win Probability: {game[-1].probability}
       </p>
 
       <p>
-        Score Diff: {game.score_diff}
+        Score Diff: {game[-1].score_diff}
       </p>
 
       <p>
-        Seconds Remaining: {game.seconds_remaining}
+        Seconds Remaining: {game[-1].seconds_remaining}
       </p>
 
       <p>
-        Last Updated: {game.last_updated}
+        Last Updated: {game[-1].last_updated}
       </p>
     </main>
   );
