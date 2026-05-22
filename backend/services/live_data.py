@@ -85,6 +85,7 @@ def poll_predict():
     FEATURES = artifact["features"]
 
     while True:
+        print("Polling...")
         date, games = get_current_games()
         
         if date is None or not games:
