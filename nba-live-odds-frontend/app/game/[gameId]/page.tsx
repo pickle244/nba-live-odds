@@ -34,9 +34,12 @@ export default function GamePage({
 
   }, [gameId]);
 
-  if (!game) {
-    return <p>Loading...</p>;
+  if (!game || game.length === 0) {
+    return <p>No data available yet...</p>;
   }
+
+  console.log("gameId:", gameId);
+  console.log("game data:", game);
 
   const last = game[game.length - 1];
   return (
