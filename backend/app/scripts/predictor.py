@@ -15,7 +15,42 @@ def get_df():
 
     df = pd.read_sql(query, engine)
 
-    df["home_win"] = (df["home_score"] > df["away_score"]).astype(int)
+    print(df.head())
+
+    print(df.columns)
+
+    return df
+
+def preprocess_df(df):
+    df = df.copy()
+
+    df["final_home_score"] = (
+        df.groupby("game_id")["home_score"]
+        .transform("last")
+    )
+
+    df["final_away_score"] = (
+        df.groupby("game_id")["away_score"]
+        .transform("last")
+    )
+
+    df["home_win"] = (df["final_home_score"] > df["final_away_score"]).astype(int)
+
+    df = df.drop(
+        columns=[
+            'id',
+            'season', 
+            'period', 
+            'home_score', 
+            'away_score', 
+            'home_elo', 
+            'away_elo', 
+            'eventual_winner', 
+            'created_at',
+            'final_home_score',
+            'final_away_score'
+        ]
+    )
 
     return df
 
@@ -36,6 +71,10 @@ def split_df(df, test_size, random_seed):
         df["game_id"].isin(test_games)
     ]
 
+    print(train_df.head())
+
+    print(test_df.head())
+
     return train_df, test_df
 
 TEST_SIZE = 0.2
@@ -49,6 +88,8 @@ FEATURES = [
 if __name__ == "__main__":
     df = get_df()
     print(f'Shape of dataset: {df.shape}')
+
+    df = preprocess_df(df)
     
     train_df, test_df = split_df(df, TEST_SIZE, RANDOM_SEED)
 
