@@ -61,6 +61,8 @@ def latest_elo(team, date):
         .scalar()
     )
 
+    session.close()
+
     return latest_elo
 
 def extract_features(date, games):
