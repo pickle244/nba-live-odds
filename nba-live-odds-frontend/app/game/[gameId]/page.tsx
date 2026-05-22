@@ -16,7 +16,7 @@ type Game = {
 export default function GamePage({
   params
 }: any) {
-  const { gameId } = params;
+  const { gameId } = params.gameId;
   const [game, setGame] = useState<Game[] | null>(null);
 
   useEffect(() => {
