@@ -14,6 +14,10 @@ from app.scripts.ingest_pbp import clock_to_seconds
 live_predictions = defaultdict(list)
 prediction_lock = Lock()
 
+import pytz
+
+eastern = pytz.timezone("US/Eastern")
+
 def get_current_games():
 
     try:
@@ -23,7 +27,6 @@ def get_current_games():
         # print(board)
 
         games = board['scoreboard']['games']
-        print(games)
 
         if not games:
 
@@ -124,7 +127,7 @@ def poll_predict():
             pred_entry['away_team'] = features[2]
             pred_entry['score_diff'] = features[3]
             pred_entry['seconds_remaining'] = features[4]
-            pred_entry['last_updated'] = datetime.now(timezone.utc).isoformat()
+            pred_entry['last_updated'] = datetime.now(eastern).isoformat()
             pred_entry['probability'] = proba
 
             with prediction_lock:
