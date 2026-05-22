@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ProbabilityChart from "./../../components/ProbabilityChart";
 import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
+import { use } from "react";
 
 type Game = {
   home_team: string;
@@ -14,9 +15,11 @@ type Game = {
 };
 
 export default function GamePage({
-  params
-}: any) {
-  const { gameId } = params.gameId;
+  params,
+}: {
+  params: Promise<{ gameId: string }>;
+}) {
+  const { gameId } = use(params);
   const [game, setGame] = useState<Game[] | null>(null);
 
   useEffect(() => {
