@@ -21,8 +21,11 @@ eastern = pytz.timezone("US/Eastern")
 def get_current_games():
 
     try:
-        today = date.today().strftime("%Y-%m-%d")
-        print(today)
+        today = datetime.now(eastern).strftime("%Y-%m-%d")
+        print("UTC:", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+        print("Render local:", datetime.now().strftime("%Y-%m-%d"))
+        print("Eastern:", datetime.now(eastern).strftime("%Y-%m-%d"))
+        print("Today:", today)
         board = ScoreboardV3(game_date=today).get_dict()
         # print(board)
 
