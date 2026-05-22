@@ -1,34 +1,49 @@
 import time
+from datetime import date, datetime, timezone
 from threading import Lock
+from collections import defaultdict
 
 import pandas as pd
 import joblib
 
-from nba_api.live.nba.endpoints import scoreboard
+from nba_api.stats.endpoints import ScoreboardV3
 
 from app.db.database import SessionLocal, TeamEloRating
 from app.scripts.ingest_pbp import clock_to_seconds
 
-live_predictions = dict()
+live_predictions = defaultdict(list)
 prediction_lock = Lock()
 
 def get_current_games():
-    try:
-        board = scoreboard.ScoreBoard()
-        date = board.score_board_date
-        games = board.games.get_dict()
 
-        return date, games
+    try:
+        today = date.today().strftime("%Y-%m-%d")
+        print(today)
+        board = ScoreboardV3(game_date=today).get_dict()
+        # print(board)
+
+        games = board['scoreboard']['games']
+        print(games)
+
+        if not games:
+
+            print("No live games found")
+
+            return today, []
+
+        return today, games
+
     except Exception as e:
+
         print(f"NBA API error: {e}")
-        time.sleep(5)
-        return None, []
+
+        return today, []
 
 def latest_elo(team, date):
     session = SessionLocal()
 
     latest_elo = (
-        session.query(TeamEloRating)
+        session.query(TeamEloRating.elo_rating)
         .filter(
             TeamEloRating.team == team,
             TeamEloRating.rating_date <= date
@@ -36,7 +51,8 @@ def latest_elo(team, date):
         .order_by(
             TeamEloRating.rating_date.desc()
         )
-        .first()
+        .limit(1)
+        .scalar()
     )
 
     return latest_elo
@@ -89,18 +105,18 @@ def poll_predict():
         date, games = get_current_games()
         
         if date is None or not games:
-            time.sleep(10)
+            time.sleep(60)
             continue
 
         features_list = extract_features(date, games)
 
         if len(features_list) == 0:
-            time.sleep(10)
+            time.sleep(60)
             continue
 
         live_df = pd.DataFrame([f[3:] for f in features_list], columns=FEATURES)
 
-        pred_probas = live_odds.predict_proba(live_df)[: 1]
+        pred_probas = live_odds.predict_proba(live_df)[:, 1]
 
         for features, proba in zip(features_list, pred_probas):
             pred_entry = dict()
@@ -108,17 +124,17 @@ def poll_predict():
             pred_entry['away_team'] = features[2]
             pred_entry['score_diff'] = features[3]
             pred_entry['seconds_remaining'] = features[4]
-            pred_entry['last_updated'] = time.now()
+            pred_entry['last_updated'] = datetime.now(timezone.utc).isoformat()
             pred_entry['probability'] = proba
 
             with prediction_lock:
                 game_id = features[0]
                 history = live_predictions[game_id]
+                history.append(pred_entry)
+
                 if len(history) > MAX_HISTORY:
                     history.pop(0)
-
-                live_predictions[game_id].append(pred_entry)
         
         print(live_predictions)
 
-        time.sleep(10)
+        time.sleep(60)
