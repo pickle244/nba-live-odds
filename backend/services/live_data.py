@@ -18,32 +18,19 @@ import pytz
 
 eastern = pytz.timezone("US/Eastern")
 
-def get_current_games():
-
+def get_current_games(game_date):
     try:
-        today = datetime.now(eastern).strftime("%Y-%m-%d")
-        print("UTC:", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
-        print("Render local:", datetime.now().strftime("%Y-%m-%d"))
-        print("Eastern:", datetime.now(eastern).strftime("%Y-%m-%d"))
-        print("Today:", today)
-        board = ScoreboardV3(game_date=today).get_dict()
-        # print(board)
-
+        board = ScoreboardV3(game_date=game_date).get_dict()
         games = board['scoreboard']['games']
 
         if not games:
-
             print("No live games found")
+            return []
 
-            return today, []
-
-        return today, games
-
+        return games
     except Exception as e:
-
         print(f"NBA API error: {e}")
-
-        return today, []
+        return []
 
 def latest_elo(team, date):
     session = SessionLocal()
@@ -78,6 +65,8 @@ def extract_features(date, games):
         score_diff = home_team['score'] - away_team['score']
 
         seconds_on_clock = clock_to_seconds(game['gameClock'])
+        if seconds_on_clock is None:
+            continue
         seconds_remaining = (4 - game['period']) * 720 + seconds_on_clock
 
         home_name = home_team['teamTricode']
@@ -113,15 +102,16 @@ def poll_predict():
 
     while True:
         print("Polling...")
-        date, games = get_current_games()
+        today = datetime.now(eastern).strftime("%Y-%m-%d")
+        games = get_current_games(today)
         
-        if date is None or not games:
+        if not games:
             time.sleep(60)
             continue
 
-        features_list = extract_features(date, games)
+        features_list = extract_features(today, games)
 
-        if len(features_list) == 0:
+        if not features_list:
             time.sleep(60)
             continue
 

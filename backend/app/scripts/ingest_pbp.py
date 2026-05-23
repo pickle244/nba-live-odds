@@ -14,7 +14,6 @@ NBAStatsHTTP.timeout = 60
 def find_game_pbp(game_id: str, retries=5) -> pd.DataFrame:
     for attempt in range(retries):
         try:
-            # print(f'Game {game_id}')
             pbp = playbyplayv3.PlayByPlayV3(game_id=game_id)
 
             return pbp.get_data_frames()[0]
@@ -41,13 +40,6 @@ def clock_to_seconds(clock):
     seconds = float(match.group(2))
 
     return minutes * 60 + seconds
-
-# import sys
-# from pathlib import Path
-
-# ROOT_DIR = Path(__file__).resolve().parent.parent
-# if str(ROOT_DIR) not in sys.path:
-#     sys.path.insert(0, str(ROOT_DIR))
 
 def ingest_game_pbp(game_id: str):
     pbp_df = find_game_pbp(game_id)
