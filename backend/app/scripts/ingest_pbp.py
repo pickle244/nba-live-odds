@@ -32,6 +32,9 @@ def find_game_pbp(game_id: str, retries=5) -> pd.DataFrame:
 import re
 
 def clock_to_seconds(clock):
+    if not clock:
+        return None
+
     match = re.match(r"PT(\d+)M([\d.]+)S", clock)
 
     minutes = int(match.group(1))

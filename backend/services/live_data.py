@@ -66,6 +66,9 @@ def latest_elo(team, date):
     return latest_elo
 
 def extract_features(date, games):
+    if not games:
+        return []
+
     features_list = []
 
     for game in games:
