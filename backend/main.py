@@ -11,7 +11,7 @@ today = datetime.now(eastern).strftime("%Y-%m-%d")
 lp = LivePrediction(today)
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI):
     poll_thread = threading.Thread(
         target=lp.poll_predict,
         daemon=True
