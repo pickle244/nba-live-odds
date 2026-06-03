@@ -1,7 +1,7 @@
 import threading
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.services.live_prediction import LivePrediction
+from app.services.live_prediction import LivePrediction
 from contextlib import asynccontextmanager
 from datetime import datetime
 import pytz
