@@ -27,6 +27,7 @@ Base = declarative_base()
 from sqlalchemy import Column
 from sqlalchemy import String
 from sqlalchemy import Integer
+from sqlalchemy import Boolean
 from sqlalchemy import Float
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
@@ -68,6 +69,7 @@ class PlayByPlayEvent(Base):
     seconds_remaining = Column(Integer)
 
     home_score = Column(Integer)
+
     away_score = Column(Integer)
 
     description = Column(String)
@@ -89,31 +91,10 @@ class FeatureSnapshot(Base):
         index=True
     )
 
-    season = Column(
-        String,
-        nullable=False,
-        index=True
-    )
-
-    period = Column(
-        Integer,
-        nullable=False
-    )
-
     seconds_remaining = Column(
         Integer,
         nullable=False,
         index=True
-    )
-
-    home_score = Column(
-        Integer,
-        nullable=False
-    )
-
-    away_score = Column(
-        Integer,
-        nullable=False
     )
 
     score_diff = Column(
@@ -122,24 +103,43 @@ class FeatureSnapshot(Base):
         index=True
     )
 
-    home_elo = Column(
-        Float,
-        nullable=True
-    )
-
-    away_elo = Column(
-        Float,
-        nullable=True
-    )
-
     elo_diff = Column(
         Float,
         nullable=True,
         index=True
     )
 
-    eventual_winner = Column(
-        String,
+    home_has_possession = Column(
+        Boolean,
+        nullable=True    # nullable because some events are ambiguous
+    )
+
+    home_team_fouls = Column(Integer, nullable=True)
+
+    away_team_fouls = Column(Integer, nullable=True)
+
+    home_in_bonus = Column(Boolean, nullable=True)
+
+    away_in_bonus = Column(Boolean, nullable=True)
+
+    home_in_double_bonus = Column(Boolean, nullable=True)
+
+    away_in_double_bonus = Column(Boolean, nullable=True)
+
+    home_full_timeouts = Column(Integer, nullable=True)
+
+    away_full_timeouts = Column(Integer, nullable=True)
+
+    home_short_timeouts = Column(Integer, nullable=True)
+
+    away_short_timeouts = Column(Integer, nullable=True)
+
+    home_points_last_2min = Column(Integer, nullable=True, default=0)
+
+    away_points_last_2min = Column(Integer, nullable=True, default=0)
+
+    home_win = Column(
+        Boolean,
         nullable=False,
         index=True
     )
@@ -181,6 +181,65 @@ class TeamEloRating(Base):
         Float,
         nullable=False,
         index=True
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+class GameOdds(Base):
+
+    __tablename__ = "game_odds"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    game_id = Column(
+        String,
+        ForeignKey("games.id"),
+        nullable=False,
+        index=True
+    )
+
+    bookmaker = Column(
+        String,
+        nullable=False
+    )
+
+    fetched_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    home_odds = Column(
+        Integer,
+        nullable=False
+    )
+
+    away_odds = Column(
+        Integer,
+        nullable=False
+    )
+
+    home_implied_prob = Column(
+        Float,
+        nullable=False
+    )
+
+    away_implied_prob = Column(
+        Float,
+        nullable=False
+    )
+
+    is_opening_line = Column(
+        Boolean,
+        default=False,
+        nullable=False
     )
 
     created_at = Column(

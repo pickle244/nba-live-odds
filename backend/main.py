@@ -1,16 +1,19 @@
 import threading
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from services.live_data import poll_predict, live_predictions
-
+from backend.app.services.live_prediction import LivePrediction
 from contextlib import asynccontextmanager
+from datetime import datetime
+import pytz
+
+eastern = pytz.timezone("US/Eastern")
+today = datetime.now(eastern).strftime("%Y-%m-%d")
+lp = LivePrediction(today)
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan():
     poll_thread = threading.Thread(
-        target=poll_predict,
+        target=lp.poll_predict,
         daemon=True
     )
 
@@ -55,9 +58,9 @@ def health():
 # Live predictions
 @app.get("/live_predictions")
 def get_live_predictions():
-    return live_predictions
+    return lp.live_predictions
 
 # Single game endpoint
 @app.get("/games/{game_id}")
 def get_game(game_id: str):
-    return live_predictions.get(game_id, [])
+    return lp.live_predictions.get(game_id, [])

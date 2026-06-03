@@ -1,0 +1,57 @@
+import re
+import pandas as pd
+from nba_api.stats.endpoints import leaguegamefinder
+from app.db.database import SessionLocal, Game
+
+class GameIngester:
+    def __init__(self, seasons: list[str]):
+        self.seasons = seasons
+
+    def get_season_games(self, season: str) -> pd.DataFrame:
+        games = leaguegamefinder.LeagueGameFinder(
+            season_type_nullable=['Regular Season','Playoffs'],
+            season_nullable=season
+        )
+
+        games_df = games.get_data_frames()[0]
+
+        return games_df
+
+    def store_season_games(self):
+        for season in self.seasons:
+            games_df = self.get_season_games(season)
+
+            # Remove duplicate rows for the same GAME_ID before merging.
+            # The NBA API often returns one row per team in the same game.
+            games_df = games_df.drop_duplicates(subset=["GAME_ID"], keep="last")
+
+            session = SessionLocal()
+
+            try:
+                pattern = r"(?:vs\.|@)\s+([A-Z]{3})"
+                for _, row in games_df.iterrows():
+                    home_team = row["TEAM_ABBREVIATION"]
+                    away_team = re.search(pattern, row['MATCHUP']).group(1)
+                    home_score = row['PTS']
+                    away_score = home_score - row['PLUS_MINUS']
+                    game = Game(
+                        id=str(row["GAME_ID"]),
+                        season=season,
+                        game_date=row['GAME_DATE'],
+                        home_team=home_team,
+                        away_team=away_team,
+                        home_score=home_score,
+                        away_score=away_score,
+                        winner=home_team if home_score > away_score else away_team
+                    )
+                    # merge() handles insert or update automatically
+                    session.merge(game)
+
+                session.commit()
+
+                print(f'{season} season ingested')
+            except Exception as e:
+                session.rollback()
+                print(f"Error ingesting {season}: {e}")
+            finally:
+                session.close()
