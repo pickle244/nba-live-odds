@@ -219,13 +219,8 @@ class LivePrediction:
                 print('Unable to extract features')
                 time.sleep(self.timeout)
                 continue
-            keys = list(features_list[0].keys())[3:]
-            print(f'Keys: {keys}')
-            columns = self.FEATURES
-            print(f'Columns: {columns}')
+            
             live_df = pd.DataFrame([list(f.values())[3:] for f in features_list], columns=self.FEATURES)
-            print(f'Missing values: {live_df.isna().sum()}')
-
             pred_probas = self.model.predict_proba(live_df)[:, 1]
             pred_probas = self.postprocess(pred_probas, live_df)
             for features, proba in zip(features_list, pred_probas):

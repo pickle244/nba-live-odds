@@ -6,8 +6,8 @@ import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
 import { use } from "react";
 
 type Game = {
-  home_team: string;
-  away_team: string;
+  home_name: string;
+  away_name: string;
   probability: number;
   score_diff: number;
   seconds_remaining: number;
@@ -47,7 +47,7 @@ export default function GamePage({
   const last = game[game.length - 1];
   return (
     <main style={{ padding: 20 }}>
-      <h1>{last.home_team} vs {last.away_team}</h1>
+      <h1>{last.home_name} vs {last.away_name}</h1>
       
       <ProbabilityChart
         history={game}
