@@ -4,7 +4,7 @@ import pandas as pd
 
 from requests.exceptions import ReadTimeout, ConnectionError
 
-from nba_api.stats.endpoints import playbyplayv3
+from nba_api.stats.endpoints import PlayByPlayV3
 from nba_api.stats.library.http import NBAStatsHTTP
 
 from app.db.database import SessionLocal, PlayByPlayEvent, Game
@@ -15,7 +15,7 @@ class PlayByPlayIngester:
     def find_game_pbp(self, game_id: str, retries=5) -> pd.DataFrame:
         for attempt in range(retries):
             try:
-                pbp = playbyplayv3.PlayByPlayV3(game_id=game_id)
+                pbp = PlayByPlayV3(game_id=game_id)
 
                 return pbp.get_data_frames()[0]
 

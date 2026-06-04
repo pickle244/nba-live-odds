@@ -6,8 +6,9 @@ import pandas as pd
 import numpy as np
 import joblib
 from nba_api.stats.endpoints import ScoreboardV3
+from nba_api.live.nba.endpoints import playbyplay
 from app.db.database import SessionLocal, TeamEloRating
-from app.services.utility import clock_to_seconds, game_seconds_remaining
+from app.services.utility import game_seconds_remaining
 from app.services.features_service import FeatureIngester
 from app.services.pbp_service import PlayByPlayIngester
 import os
@@ -44,6 +45,8 @@ class LivePrediction:
         try:
             board = ScoreboardV3(game_date=self.game_date).get_dict()
             games = board['scoreboard']['games']
+            for game in board['scoreboard']['games']:
+                print(game['gameId'], game['gameStatus'], game['gameStatusText'])
 
             if not games:
                 print("No live games found")
@@ -75,6 +78,18 @@ class LivePrediction:
     
     def parse_score(self, score_str):
         return 0 if score_str == '' else int(score_str)
+    
+    def get_live_pbp(self, game_id: str) -> list[dict]:
+        url = f"https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{game_id}.json"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "Referer": "https://www.nba.com/",
+            "Origin": "https://www.nba.com",
+            "Accept": "application/json",
+        }
+        r = httpx.get(url, headers=headers)
+        r.raise_for_status()
+        return r.json()["game"]["actions"]
 
     def extract_features(self, games):
         features_list = []
@@ -97,44 +112,39 @@ class LivePrediction:
                 print(f'Home/away ELO for game {game_id} not found')
                 continue
             elo_diff = home_elo - away_elo
-
-            pbp_df = pbpi.find_game_pbp(game_id)
-            if pbp_df.empty:
+            
+            actions = self.get_live_pbp("0042500401")
+            if not actions:
                 print(f'No events found for game {game_id}')
-                continue
+                return None
             
-            latest_event = pbp_df.iloc[-1]
-            print(f'Latest event: {latest_event}')
-            
-            latest_home_score = self.parse_score(latest_event['scoreHome'])
-            latest_away_score = self.parse_score(latest_event['scoreAway'])
+            latest = actions[-1]
+
+            latest_home_score = self.parse_score(latest['scoreHome'])
+            latest_away_score = self.parse_score(latest['scoreAway'])
             score_diff = latest_home_score - latest_away_score
 
-            seconds_remaining = game_seconds_remaining(latest_event['clock'], latest_event['period'])
+            period = latest['period']
+            seconds_remaining = game_seconds_remaining(latest['clock'], period)
             if seconds_remaining is None:
                 print(f'Clock for game {game_id} not found')
-                continue
+                return None
 
-            desc = latest_event.description
+            desc = latest['description']
             home_roster = fi.get_home_players(game_id)
-            home_possession = fi.infer_possession(
-                desc, 
-                home_roster, 
-                home_team
-            )
 
+            home_possession = fi.infer_possession(desc, home_roster, home_name)
             if home_possession is None:
                 home_possession = False
 
             fouls_dict = fi.parse_fouls(desc, home_roster)
-
             timeouts_dict = fi.parse_timeouts(desc, home_name)
 
             window_seconds = seconds_remaining + 120
             home_points_last_2min = 0
             away_points_last_2min = 0
-            events = pbp_df.iloc[:-1].iloc[::-1].to_dict('records')
-            for prev in events:
+
+            for prev in reversed(actions[:-1]):
                 prev_home_score = self.parse_score(prev['scoreHome'])
                 prev_away_score = self.parse_score(prev['scoreAway'])
                 home_points_last_2min = latest_home_score - prev_home_score
@@ -142,6 +152,8 @@ class LivePrediction:
 
                 prev_period = prev['period']
                 prev_seconds_remaining = game_seconds_remaining(prev['clock'], prev_period)
+                if prev_seconds_remaining is None:
+                    continue
                 prev_seconds = (4 - prev_period) * 720 + prev_seconds_remaining
                 if prev_seconds > window_seconds:
                     break

@@ -46,7 +46,7 @@ export default function Home() {
               <div style={{ marginBottom: 20, cursor: "pointer" }}>
 
                 <h3>
-                  {last.home_team} vs {last.away_team}
+                  {last.home_name} vs {last.away_name}
                 </h3>
 
                 <p>
