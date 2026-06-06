@@ -113,7 +113,7 @@ class LivePrediction:
                 continue
             elo_diff = home_elo - away_elo
             
-            actions = self.get_live_pbp("0042500401")
+            actions = self.get_live_pbp(game_id)
             if not actions:
                 print(f'No events found for game {game_id}')
                 return None
