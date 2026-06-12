@@ -109,30 +109,22 @@ class FeatureSnapshot(Base):
         index=True
     )
 
-    home_has_possession = Column(
+    home_possession = Column(
         Boolean,
         nullable=True    # nullable because some events are ambiguous
     )
 
-    home_team_fouls = Column(Integer, nullable=True)
+    home_fouls = Column(Integer, nullable=True)
 
-    away_team_fouls = Column(Integer, nullable=True)
+    away_fouls = Column(Integer, nullable=True)
 
     home_in_bonus = Column(Boolean, nullable=True)
 
     away_in_bonus = Column(Boolean, nullable=True)
 
-    home_in_double_bonus = Column(Boolean, nullable=True)
+    home_timeouts = Column(Integer, nullable=True)
 
-    away_in_double_bonus = Column(Boolean, nullable=True)
-
-    home_full_timeouts = Column(Integer, nullable=True)
-
-    away_full_timeouts = Column(Integer, nullable=True)
-
-    home_short_timeouts = Column(Integer, nullable=True)
-
-    away_short_timeouts = Column(Integer, nullable=True)
+    away_timeouts = Column(Integer, nullable=True)
 
     home_points_last_2min = Column(Integer, nullable=True, default=0)
 

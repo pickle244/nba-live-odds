@@ -6,9 +6,8 @@ import pandas as pd
 import numpy as np
 import joblib
 from nba_api.stats.endpoints import ScoreboardV3
-from nba_api.live.nba.endpoints import playbyplay
 from app.db.database import SessionLocal, TeamEloRating
-from app.services.utility import game_seconds_remaining
+from app.services.utility import game_seconds_remaining, latest_elo
 from app.services.features_service import FeatureIngester
 from app.services.pbp_service import PlayByPlayIngester
 import os
@@ -45,7 +44,8 @@ class LivePrediction:
         try:
             board = ScoreboardV3(game_date=self.game_date).get_dict()
             games = board['scoreboard']['games']
-            for game in board['scoreboard']['games']:
+            print(games)
+            for game in games:
                 print(game['gameId'], game['gameStatus'], game['gameStatusText'])
 
             if not games:
@@ -56,25 +56,6 @@ class LivePrediction:
         except Exception as e:
             print(f"NBA API error: {e}")
             return []
-
-    def latest_team_elo(self, team):
-        session = SessionLocal()
-
-        latest_elo = (
-            session.query(TeamEloRating.elo_rating)
-            .filter(
-                TeamEloRating.team == team,
-                TeamEloRating.rating_date <= self.game_date
-            )
-            .order_by(
-                TeamEloRating.rating_date.desc()
-            )
-            .limit(1)
-            .scalar()
-        )
-
-        session.close()
-        return latest_elo
     
     def parse_score(self, score_str):
         return 0 if score_str == '' else int(score_str)
@@ -82,10 +63,13 @@ class LivePrediction:
     def get_live_pbp(self, game_id: str) -> list[dict]:
         url = f"https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{game_id}.json"
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Referer": "https://www.nba.com/",
             "Origin": "https://www.nba.com",
-            "Accept": "application/json",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
         }
         r = httpx.get(url, headers=headers)
         r.raise_for_status()
@@ -93,8 +77,6 @@ class LivePrediction:
 
     def extract_features(self, games):
         features_list = []
-
-        pbpi = PlayByPlayIngester()
         fi = FeatureIngester()
         for game in games:
             game_id = game['gameId']
@@ -106,12 +88,22 @@ class LivePrediction:
             home_name = home_team['teamTricode']
             away_name = away_team['teamTricode']
 
-            home_elo = self.latest_team_elo(home_name)
-            away_elo = self.latest_team_elo(away_name)
+            home_elo = latest_elo(home_name, self.game_date)
+            away_elo = latest_elo(away_name, self.game_date)
             if home_elo == None or away_elo == None:
                 print(f'Home/away ELO for game {game_id} not found')
                 continue
             elo_diff = home_elo - away_elo
+
+            home_score = home_team['score']
+            away_score = away_team['score']
+            score_diff = home_score - away_score
+
+            period = game['period']
+            seconds_remaining = game_seconds_remaining(game['gameClock'], period)
+            if seconds_remaining is None:
+                print(f'Clock for game {game_id} not found')
+                return None
             
             actions = self.get_live_pbp(game_id)
             if not actions:
@@ -124,11 +116,7 @@ class LivePrediction:
             latest_away_score = self.parse_score(latest['scoreAway'])
             score_diff = latest_home_score - latest_away_score
 
-            period = latest['period']
-            seconds_remaining = game_seconds_remaining(latest['clock'], period)
-            if seconds_remaining is None:
-                print(f'Clock for game {game_id} not found')
-                return None
+            
 
             desc = latest['description']
             home_roster = fi.get_home_players(game_id)
@@ -215,12 +203,14 @@ class LivePrediction:
                 continue
 
             features_list = self.extract_features(games)
+            print(features_list[-1])
             if not features_list:
                 print('Unable to extract features')
                 time.sleep(self.timeout)
                 continue
             
             live_df = pd.DataFrame([list(f.values())[3:] for f in features_list], columns=self.FEATURES)
+            print(live_df.head())
             pred_probas = self.model.predict_proba(live_df)[:, 1]
             pred_probas = self.postprocess(pred_probas, live_df)
             for features, proba in zip(features_list, pred_probas):

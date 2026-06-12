@@ -1,5 +1,5 @@
 import re
-from app.db.database import SessionLocal, Game, PlayByPlayEvent
+from app.db.database import SessionLocal, Game, PlayByPlayEvent, TeamEloRating
 
 def clock_to_seconds(clock):
     if not clock:
@@ -41,3 +41,22 @@ def get_game_pbp(game_id):
 
     session.close()
     return events
+
+def latest_elo(team, game_date):
+    session = SessionLocal()
+
+    latest_elo = (
+        session.query(TeamEloRating.elo_rating)
+        .filter(
+            TeamEloRating.team == team,
+            TeamEloRating.rating_date <= game_date
+        )
+        .order_by(
+            TeamEloRating.rating_date.desc()
+        )
+        .limit(1)
+        .scalar()
+    )
+
+    session.close()
+    return latest_elo

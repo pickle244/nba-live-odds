@@ -1,88 +1,79 @@
 import time
-
 import pandas as pd
-
 from requests.exceptions import ReadTimeout, ConnectionError
-
 from nba_api.stats.endpoints import PlayByPlayV3
 from nba_api.stats.library.http import NBAStatsHTTP
-
-from app.db.database import SessionLocal, PlayByPlayEvent, Game
-from app.services.utility import clock_to_seconds
+from app.db.database import SessionLocal, PlayByPlayEvent
+from app.services.utility import game_seconds_remaining
 
 NBAStatsHTTP.timeout = 60
+
 class PlayByPlayIngester:
-    def find_game_pbp(self, game_id: str, retries=5) -> pd.DataFrame:
+    def __init__(self, game_id: str):
+        self.game_id = game_id
+        self.home_score = 0
+        self.away_score = 0
+
+    def find_game_pbp(self, retries=5) -> pd.DataFrame:
         for attempt in range(retries):
             try:
-                pbp = PlayByPlayV3(game_id=game_id)
-
+                pbp = PlayByPlayV3(game_id=self.game_id)
                 return pbp.get_data_frames()[0]
-
-            except (
-                ReadTimeout,
-                ConnectionError
-            ) as e:
+            except (ReadTimeout, ConnectionError) as e:
                 print(f"Retry {attempt+1}: {e}")
-
                 time.sleep(2)
-
         return None
+    
+    def process_event(self, row):
+        try:
+            home_score = row["scoreHome"]
+            if home_score == "":
+                self.home_score = self.home_score
+            else:
+                self.home_score = int(home_score)
+
+            away_score = row["scoreAway"]
+            if away_score == "":
+                self.away_score = self.away_score
+            else:
+                self.away_score = int(away_score)
+
+            # print(f'Score: {self.home_score} : {self.away_score}')
+
+            event = PlayByPlayEvent(
+                game_id=self.game_id,
+                period=row["period"],
+                clock=row["clock"],
+                seconds_remaining=game_seconds_remaining(
+                    row["clock"],
+                    row['period']
+                ),
+                home_score=self.home_score,
+                away_score=self.away_score,
+                description=row["description"]
+            )
+
+            return event
+        except Exception as row_error:
+            print(f"[{self.game_id}] Failed processing row")
+            print(row_error)
+            return None
 
     def store_pbp(self):
         session = SessionLocal()
-        games = (
-            session.query(Game)
-            .all()
+        existing = (
+            session.query(PlayByPlayEvent)
+            .filter(PlayByPlayEvent.game_id == self.game_id)
+            .first()
         )
 
-        for i, game in enumerate(games):
-            game_id = game.id
-            existing = (
-                session.query(PlayByPlayEvent)
-                .filter(PlayByPlayEvent.game_id == game_id)
-                .first()
-            )
-
-            if existing:
-                print(f"PBP for game {game_id} already stored")
-                continue
-        
-            pbp_df = self.find_game_pbp(game_id)
-
-            for _, row in pbp_df.iterrows():
-                try:
-                    home_score = row["scoreHome"]
-                    away_score = row["scoreAway"]
-
-                    event = PlayByPlayEvent(
-                        game_id=game_id,
-                        period=row["period"],
-                        clock=row["clock"],
-                        seconds_remaining=clock_to_seconds(
-                            row["clock"]
-                        ),
-                        home_score=(
-                            0
-                            if home_score == ""
-                            else int(home_score)
-                        ),
-                        away_score=(
-                            0
-                            if away_score == ""
-                            else int(away_score)
-                        ),
-                        description=row["description"]
-                    )
-
-                    session.merge(event)
-                except Exception as row_error:
-                    print(f"[{game_id}] Failed processing row")
-                    print(row_error)
-                    continue
-                
-            session.commit()
-            print(f"Events for game {game.id} ingested ({i + 1} / {len(games)})")
-            time.sleep(1.5)
+        if existing:
+            print(f"PBP for game {self.game_id} already stored")
+    
+        pbp_df = self.find_game_pbp()
+        for _, row in pbp_df.iterrows():
+            event = self.process_event(row)
+            session.merge(event)
+        session.commit()
 
         session.close()

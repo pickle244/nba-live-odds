@@ -7,11 +7,9 @@ class Preprocessor:
         self.TEST_SIZE = test_size
         self.RANDOM_SEED = random_seed
         self.BOOL_FEATURES = [
-            "home_has_possession",
+            "home_possession",
             "home_in_bonus",
             "away_in_bonus",
-            "home_in_double_bonus",
-            "away_in_double_bonus",
         ]
 
     def get_df(self):

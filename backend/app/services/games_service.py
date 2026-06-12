@@ -23,7 +23,7 @@ class GameIngester:
 
             # Remove duplicate rows for the same GAME_ID before merging.
             # The NBA API often returns one row per team in the same game.
-            games_df = games_df.drop_duplicates(subset=["GAME_ID"], keep="last")
+            games_df = games_df[games_df["MATCHUP"].str.contains("vs.")].drop_duplicates(subset=["GAME_ID"], keep="first")
 
             session = SessionLocal()
 
